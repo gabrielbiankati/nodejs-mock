@@ -15,30 +15,37 @@ app.get('/products', (req, res) => {
 });
 
 app.post('/products', (req, res) => {
-    const { name, age, cpf } = req.body;
-    products.push({id: products.length + 1, name, age, cpf});
+    const { name, age, status } = req.body;
+    products.push({id: products.length + 1, name, age, status});
     res.status(201).json().send();
 });
 
 app.put('/products/:id', (req, res) => {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, age } = req.body;
 
     const productIndex = products.findIndex(product => product.id == id);
     if (productIndex == -1) {
         return res.status(404).send();
     }
 
-    products[productIndex] = {...products[productIndex], name};
+    products[productIndex] = {...products[productIndex], name, age}; 
 
-    res.status(204).json(products).send();
+    res.status(200).json(products).send();
 });
 
-app.patch('/products', (req, res) => {  
+app.patch('/products/:id/status', (req, res) => {  
     const { id } = req.params;
-    const { name } = req.body;
+    const { status } = req.body;
 
-    res.status(204).json(products).send();
+    const productIndex = products.findIndex(product => product.id == id);
+    if (productIndex == -1) {
+        return res.status(404).send();
+    }
+
+    products[productIndex] = {...products[productIndex], status};
+
+    res.status(200).json(products).send();
 });
 
 app.delete('/products/:id', (req, res) => {

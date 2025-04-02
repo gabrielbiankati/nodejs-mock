@@ -1,5 +1,6 @@
-import express, { request } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import { seedUserStore, users } from './database';
+import { generateJwtAndRefreshToken } from './auth';
 
 const port = 3333;
 const app = express();
@@ -7,6 +8,19 @@ const app = express();
 app.use(express.json());
 
 seedUserStore();
+
+function checkAuthMiddleware(request: Request, response: Response, next: NextFunction) {
+  const { authorization } = request.headers;
+
+  if (!authorization) {
+    return response
+    .status(401)
+    .json({error: true, code: 'Token not exists'});
+  }
+
+  console.log(authorization);
+  return next();
+}
 
 app.post('/sessions', (request, response) => {
     const { email, password } = request.body;
@@ -19,19 +33,33 @@ app.post('/sessions', (request, response) => {
         });
     }
 
-    return response.json({
-      token: 'teste',
-      refreshToken: 'teste',
+    const { token } = generateJwtAndRefreshToken(email, {
+        permissions: user.permissions,
+        roles: user.roles,
     });
-    // Pegar usuario e senha
-    // Buscar no banco o usuario
-    // Erro 401 quando não encontrar o usuario
-    // Descriptografar a senha
-    // Verificar a senha informada com a senha do banco 
-    // Erro 401 quando a senha do usuario nao esta valida
-    // Gerar token e o Refresh Token
-    // Retornar Token e Refresh Token
 
+    return response.json({
+      token,
+      
+    });
+});
+
+app.get('/me', checkAuthMiddleware, (request, response) => {
+  const email = request.user;
+
+  const user = users.get(email);
+
+  if (!user) {
+    return response
+      .status(404)
+      .json({ error: true, message: 'User not found.'});
+  }
+
+  return response.json({
+    email,
+    permissions: user.permissions,
+    roles: user.roles,
+  })
 });
 
 app.listen(port, () => {
